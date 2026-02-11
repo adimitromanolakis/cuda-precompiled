@@ -30,6 +30,10 @@ from torch import nn
 from tqdm import tqdm
 
 
+print(torch.cuda.get_device_name())
+print("\n\n")
+
+
 # ----------------------------------------------------------------------
 def parse_args():
     parser = argparse.ArgumentParser(description="CUDA vs Tensor‑Core TFLOPs benchmark")
