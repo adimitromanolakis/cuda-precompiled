@@ -99,6 +99,14 @@ execute_script "/pre_start.sh" "Running pre-start script..."
 echo "Pod Started"
 
 setup_ssh
+
+
+ssh-keygen -f /root/.ssh/id_ed25519 -N ''
+cat /root/.ssh/id_ed25519.pub
+echo 147.182.155.148 digi  >> /etc/hosts
+
+
+
 start_jupyter
 export_env_vars
 
