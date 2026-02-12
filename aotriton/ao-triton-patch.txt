@@ -1,0 +1,152 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7ba9455..f8bdbd5 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -67,7 +67,11 @@ find_package(Python3 ${AOTRITON_MIN_PYTHON} COMPONENTS Interpreter REQUIRED)
+ list(APPEND CMAKE_PREFIX_PATH "/opt/rocm")
+ find_package(hip REQUIRED)
+ 
+-set(VENV_DIR "${CMAKE_CURRENT_BINARY_DIR}/venv" CACHE STRING "Virtual Environment Directory")
++set(VENV_DIR "/home/apo/text-generation-webui/installer_files/env/" CACHE STRING "Virtual Environment Directory")
++
++
++
++
+ option(AOTRITON_NO_PYTHON "Disable python binding build" OFF)
+ option(AOTRITON_USE_TORCH "Enable functions in python binding that requires libtorch" ON)
+ option(AOTRITON_ENABLE_ASAN "Enable Address Sanitizer. Implies -g" OFF)
+@@ -75,7 +79,7 @@ option(AOTRITON_BUILD_FOR_TUNING "Build all GPU kernels and set -DAOTRITON_BUILD
+ set(AOTRITON_BUILD_FOR_TUNING_BUT_SKIP_KERNEL "" CACHE STRING "Use tuning database for certain kernels when AOTRITON_BUILD_FOR_TUNING=ON")
+ option(AOTRITON_ENABLE_FP32_INPUTS "Enable FP32 support." ON)
+ option(AOTRITON_NOIMAGE_MODE "Only build C++ Shim part. Kernel image builds are disabled" OFF)
+-option(AOTRITON_INHERIT_SYSTEM_SITE_TRITON "Use system site packages and verify triton availability instead of building from source" OFF)
++option(AOTRITON_INHERIT_SYSTEM_SITE_TRITON "Use system site packages and verify triton availability instead of building from source" ON)
+ # No plan to support network based pip install
+ set(AOTRITON_USE_LOCAL_TRITON_WHEEL "" CACHE STRING "Substitute install from third_party/triton with install from local pip wheel package.")
+ set(AOTRITON_GPU_BUILD_TIMEOUT "8.0" CACHE STRING "GPU kernel compiler times out after X minutes. 0 for indefinite. Highly recommended if AOTRITON_BUILD_FOR_TUNING=On.")
+@@ -152,11 +156,13 @@ endif()
+ set(Python_ARTIFACTS_INTERACTIVE TRUE)
+ 
+ # Not a target, we need to override Python3_EXECUTABLE later
+-if(AOTRITON_INHERIT_SYSTEM_SITE_TRITON)
+-  execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv --system-site-packages "${VENV_DIR}")
+-else()
+-  execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv "${VENV_DIR}")
+-endif()
++#if(AOTRITON_INHERIT_SYSTEM_SITE_TRITON)
++#  execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv --system-site-packages "${VENV_DIR}")
++#else()
++#  execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv "${VENV_DIR}")
++#endif()
++
++
+ 
+ set(ENV{VIRTUAL_ENV} "${VENV_DIR}")
+ message("VENV_DIR ${VENV_DIR}")
+@@ -176,7 +182,7 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E env VIRTUAL_ENV=${VENV_DIR} "${VENV_
+ # string(STRIP "${VENV_SITE}" VENV_SITE)
+ message("VENV_SITE ${VENV_SITE}")
+ 
+-execute_process(COMMAND ${CMAKE_COMMAND} -E env VIRTUAL_ENV=${VENV_DIR} "${VENV_BIN_PYTHON}" -m pip install -r "${CMAKE_CURRENT_LIST_DIR}/requirements.txt")
++# execute_process(COMMAND ${CMAKE_COMMAND} -E env VIRTUAL_ENV=${VENV_DIR} "${VENV_BIN_PYTHON}" -m pip install -r "${CMAKE_CURRENT_LIST_DIR}/requirements.txt")
+ 
+ set(ALL_TRITON_SOS "")
+ if(AOTRITON_NOIMAGE_MODE)
+@@ -198,23 +204,9 @@ elseif(AOTRITON_INHERIT_SYSTEM_SITE_TRITON)
+     message(FATAL_ERROR "[AOTriton] AOTRITON_INHERIT_SYSTEM_SITE_TRITON is enabled but triton is not available in the virtual environment. Please install triton or disable this option. ${TRITON_OUTPUT}")
+   endif()
+ else()
+-  set(TRITON_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/triton_build")
+-  execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${TRITON_BUILD_DIR}")
+-  # set(AOTRITON_TRITON_EGGLINK "${VENV_SITE}/triton.egg-link")
+-  # message("AOTRITON_TRITON_EGGLINK ${AOTRITON_TRITON_EGGLINK}")
+ 
+   set(AOTRITON_TRITON_SO "${VENV_SITE}/${VENV_REL_TRITON}")
+ 
+-  if(AOTRITON_USE_LOCAL_TRITON_WHEEL)
+-    add_custom_command(OUTPUT "${AOTRITON_TRITON_SO}"
+-      COMMAND ${CMAKE_COMMAND} -E env VIRTUAL_ENV=${VENV_DIR} "${VENV_BIN_PYTHON}" -m pip install ${AOTRITON_USE_LOCAL_TRITON_WHEEL}
+-    )
+-  else()
+-    add_custom_command(OUTPUT "${AOTRITON_TRITON_SO}"
+-      COMMAND ${CMAKE_COMMAND} -E env TRITON_BUILD_PROTON=OFF VIRTUAL_ENV=${VENV_DIR} TRITON_BUILD_DIR=${TRITON_BUILD_DIR} "${VENV_BIN_PYTHON}" -m pip install .
+-      WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/third_party/triton/"
+-    )
+-  endif()
+   LIST(APPEND ALL_TRITON_SOS "${AOTRITON_TRITON_SO}")
+ endif()
+ 
+@@ -235,7 +227,7 @@ if(NOT AOTRITON_NOIMAGE_MODE AND AOTRITON_ALT_TRITON_WHEEL_CONFIG_FILE)
+     message(STATUS "WHEEL ${WHEEL}")
+     execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv "${ALT_VENV_DIR}")
+     set(ALT_VENV_BIN_PYTHON "${ALT_VENV_DIR}/${VENV_REL_PYTHON}")
+-    execute_process(COMMAND "${ALT_VENV_BIN_PYTHON}" -m pip install -r "${CMAKE_CURRENT_LIST_DIR}/requirements.txt")
++    #execute_process(COMMAND "${ALT_VENV_BIN_PYTHON}" -m pip install -r "${CMAKE_CURRENT_LIST_DIR}/requirements.txt")
+     set(AOTRITON_TRITON_SO "${ALT_VENV_DIR}/${VENV_REL_TRITON}")
+     add_custom_command(OUTPUT "${AOTRITON_TRITON_SO}"
+       COMMAND "${ALT_VENV_BIN_PYTHON}" -m pip install ${WHEEL}
+diff --git a/include/aotriton/util.h b/include/aotriton/util.h
+index abe553a..e4e84d4 100644
+--- a/include/aotriton/util.h
++++ b/include/aotriton/util.h
+@@ -56,6 +56,9 @@ enum AOTRITON_API Gpu : uint64_t {
+   GPU_AMD_ARCH_GFX942_MOD0  = TRICAT(GpuVendor::kAMD,  0x942, 0),
+   GPU_AMD_ARCH_GFX942_MOD1  = TRICAT(GpuVendor::kAMD,  0x942, 1),
+   GPU_AMD_ARCH_GFX942_MOD2  = TRICAT(GpuVendor::kAMD,  0x942, 2),
++  GPU_AMD_ARCH_GFX1030_MOD0 = TRICAT(GpuVendor::kAMD, 0x1030, 0),
++  GPU_AMD_ARCH_GFX1031_MOD0 = TRICAT(GpuVendor::kAMD, 0x1031, 0),
++
+   GPU_AMD_ARCH_GFX1100_MOD0 = TRICAT(GpuVendor::kAMD, 0x1100, 0),
+   GPU_AMD_ARCH_GFX1101_MOD0 = TRICAT(GpuVendor::kAMD, 0x1101, 0),
+   GPU_AMD_ARCH_GFX1102_MOD0 = TRICAT(GpuVendor::kAMD, 0x1102, 0),
+diff --git a/v3python/base/typed_choice.py b/v3python/base/typed_choice.py
+index 2028988..3636601 100644
+--- a/v3python/base/typed_choice.py
++++ b/v3python/base/typed_choice.py
+@@ -305,7 +305,7 @@ class Guess(object):
+ 
+ class GuessNumpy(Guess):
+     FACTORY = {
+-        np.bool   : constexpr.bool_t,
++        np.bool_   : constexpr.bool_t,
+         np.int8   : constexpr.int8_t,
+         np.int16  : constexpr.int16_t,
+         np.int32  : constexpr.int32_t,
+diff --git a/v3python/compile.py b/v3python/compile.py
+index 18b3560..3b367d7 100644
+--- a/v3python/compile.py
++++ b/v3python/compile.py
+@@ -15,7 +15,7 @@ import json
+ from triton.backends.compiler import GPUTarget
+ 
+ KNOWN_TARGETS_64 = ['gfx90a', 'gfx942', 'gfx950']
+-KNOWN_TARGETS_32 = ['gfx1100', 'gfx1101', 'gfx1102', 'gfx1103', 'gfx1150', 'gfx1151', 'gfx1152', 'gfx1153', 'gfx1200', 'gfx1201', 'gfx1250']
++KNOWN_TARGETS_32 = ['gfx1030', 'gfx1031', 'gfx1100', 'gfx1101', 'gfx1102', 'gfx1103', 'gfx1150', 'gfx1151', 'gfx1152', 'gfx1153', 'gfx1200', 'gfx1201', 'gfx1250']
+ 
+ KNOWN_TARGETS = {
+   arch : GPUTarget('hip', arch, 64) for arch in KNOWN_TARGETS_64
+diff --git a/v3src/util.cc b/v3src/util.cc
+index 8652635..05dc6ab 100644
+--- a/v3src/util.cc
++++ b/v3src/util.cc
+@@ -48,6 +48,9 @@ private:
+ std::unordered_map<std::string, GpuClassifier> LazyGpu::string_to_classifier = {
+   { "gfx90a", DummyClassifier<GPU_AMD_ARCH_GFX90A_MOD0 >() },
+   { "gfx942", DummyClassifier<GPU_AMD_ARCH_GFX942_MOD0 >() },
++  {"gfx1030", DummyClassifier<GPU_AMD_ARCH_GFX1030_MOD0>() },
++  {"gfx1031", DummyClassifier<GPU_AMD_ARCH_GFX1031_MOD0>() },
++
+   {"gfx1100", DummyClassifier<GPU_AMD_ARCH_GFX1100_MOD0>() },
+   {"gfx1101", DummyClassifier<GPU_AMD_ARCH_GFX1101_MOD0>() },
+   {"gfx1102", DummyClassifier<GPU_AMD_ARCH_GFX1102_MOD0>() },
+@@ -78,6 +81,10 @@ bool isArchExperimentallySupported(hipStream_t stream) {
+   uint32_t vendor_arch = Gpu2VendorArch(gpu);
+   return (vendor_arch == CAT32(GpuVendor::kAMD, 0x1150) ||
+           vendor_arch == CAT32(GpuVendor::kAMD, 0x1151) ||
++
++          vendor_arch == CAT32(GpuVendor::kAMD, 0x1030) ||
++          vendor_arch == CAT32(GpuVendor::kAMD, 0x1031) ||
++
+           vendor_arch == CAT32(GpuVendor::kAMD, 0x1152) ||
+           vendor_arch == CAT32(GpuVendor::kAMD, 0x1153) ||
+           vendor_arch == CAT32(GpuVendor::kAMD, 0x1100) ||
