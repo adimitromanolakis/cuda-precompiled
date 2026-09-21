@@ -1,0 +1,2 @@
+build-llama-cuda13-for-rtx3090.tar.gz filter=lfs diff=lfs merge=lfs -text
+llama-rtx3090-Sept20206.tar.gz filter=lfs diff=lfs merge=lfs -text
